@@ -1,0 +1,6 @@
+/node_modules
+/.idea
+/sslcert
+package-lock.json
+.env
+*.log
