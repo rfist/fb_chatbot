@@ -5,7 +5,8 @@ const logger = require('../logger');
 const { MONGO_DB_NAME } = process.env;
 const USER_COLLECTIONS = 'users';
 const MESSAGES_COLLECTIONS = 'messages';
-let usersCollection; let messagesCollection;
+const REFERRALS_COLLECTIONS = 'referrals';
+let usersCollection; let messagesCollection; let referralsCollection;
 
 function connectToServer() {
   return new Promise((resolve, reject) => {
@@ -16,10 +17,43 @@ function connectToServer() {
         logger.info('Mongodb is connected', err);
         usersCollection = client.db(MONGO_DB_NAME).collection(USER_COLLECTIONS);
         messagesCollection = client.db(MONGO_DB_NAME).collection(MESSAGES_COLLECTIONS);
+        referralsCollection = client.db(MONGO_DB_NAME).collection(REFERRALS_COLLECTIONS);
         resolve(client);
       }
     });
   });
+}
+
+async function saveReferral(ref, sender) {
+  const [err] = await to(new Promise((resolve, reject) => {
+    referralsCollection.insertOne({ _id: ref, ref, sender }, (error) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve();
+      }
+    });
+  }));
+  if (err) {
+    logger.error(`Can't save referral ${ref}, error ${err}`);
+  }
+  return true;
+}
+
+async function getReferral(ref) {
+  const [err, referral] = await to(new Promise((resolve, reject) => {
+    referralsCollection.findOne({ ref }, (error, result) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(result);
+      }
+    });
+  }));
+  if (err) {
+    logger.error(`Can't find ref ${ref}, error ${err}`);
+  }
+  return referral;
 }
 
 async function getUserById(id) {
@@ -93,6 +127,8 @@ async function saveMessage(from, into, text) {
 }
 
 module.exports = {
+  saveReferral,
+  getReferral,
   connectToServer,
   createUser,
   getUserById,
